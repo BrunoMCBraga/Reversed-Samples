@@ -1,9 +1,11 @@
 MD5: 3ab3d463575a011dfad630da154600b5
+
 Files:
 realshellcode.bin/idb: the final backdoor
 shellcode.dmp/idb: shellcode executed through taskbar event handler replacement or within browsers. Pretty much a chunk of the original.
 3a...idb: ida database for original malware.
 
+Name: Wipbot
 
 Modus operandi Overview:
 There are two main branches at the beginning of the malware. The right one which starts on 00401159 seems to be deadcode. References to the ds:30h there seem to indicate that this branch is compatible with old versions of windows. 
