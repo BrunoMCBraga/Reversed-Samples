@@ -1,0 +1,148 @@
+MD5: 3ab3d463575a011dfad630da154600b5
+Files:
+realshellcode.bin/idb: the final backdoor
+shellcode.dmp/idb: shellcode executed through taskbar event handler replacement or within browsers. Pretty much a chunk of the original.
+3a...idb: ida database for original malware.
+
+
+Modus operandi Overview:
+There are two main branches at the beginning of the malware. The right one which starts on 00401159 seems to be deadcode. References to the ds:30h there seem to indicate that this branch is compatible with old versions of windows. 
+
+The left branch proceeds as follows:
+-It checks whether the current process is named explorer.exe (on routine 004011C6). This accounts for a situation where the malicious code is running within explorer. 
+
+If it is not the case it will check whether the process name is one of: chrome.exe, firefox.exe, opera.exe, iexplore.exe. There are more but i only have the checksums. This accounts for the case where the malware shellcode is injected and running within the context of these processes.
+	If it is the case, the routine 0040380B is executed. The inner workings of this routine are described below. The entrypoint for the decoded backdoor on the realshellcode db is 00349F59.
+	
+	If it is not the case, the routine 401207 is executed. This routine is responsible for:
+		1.Clone explorer.exe token and launch itself using CreateProcessAsUser
+		2. If 1. fails, the malware leverages this: https://www.crowdstrike.com/blog/through-window-creative-code-invocation/ to execute shellcode. The shellcode that is executed is pretty much the original malicious code. You can find it on shellcode.dmp. 
+		(If 2.) 3.Create a file %TEMP%\winwtf.bat with:
+			    del [CURRENT_MODULE_SHORT_PATH]
+				:Repeat
+				del [CURRENT_MODULE_SHORT_PATH]
+				if exists [CURRENT_MODULE_SHORT_PATH] goto Repeat
+				del %TEMP%\winwtf.bat
+		 where CURRENT_MODULE_SHORT_PATH is obtained from GetShortPathNameA for the full file path of the malware.
+      
+
+
+If it is the case, it will launch a thread for the function 402fcf which will:
+	-Try to create an event Windows.HardwareAcceleration to see if there is already an infection.
+	-It will generate a random GUID that will later be used to identify the infection. 
+	-Inject the shellcode on one of the processes: iexplore.exe, firefox.exe, opera.exe, chrome.exe. There are another four but i could not figure out which.
+	-Deletes the temporary files %TEMP%\~tmp133.tmp and C:\Users\user\Desktop\3AB3D4~1. The first file is hardcoded and i find no reference for it anywhere else. My guess is that this file is created through a command sent by the remote server. This tells the malware the infection was successful and there is connectivity.  The second is specific to my host and it is a short name for the original malware.
+	-Establish persistence by setting: SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon->explorer.exe C:\Users\user\Desktop\3AB3D4~1 (replace the second with the path for the malware initially). This is just set if there was an error deleting the aforementioned files.
+
+
+########################################Contacted URLs########################################:
+The contacted URLs are (one is randomly chosen based on time and rand functions):
+http://homaxcompany.com/components/com_sitemap/
+http://www.hadilotfi.com/wp-content/themes/profile/
+
+
+To the URLs, /%s?rank=%s is appended where the first string is the path within the domain (e.g /components/com_sitemap/) and the second is a string of random integers that obey the following regex: [0-9]{5}.
+
+Optionally, a &link=no may be prepended. This value is prepended if the malware has executed the main loop (i.e. get host stats and beacon server) without getting any updates. Updates are associated with a config file described below.
+
+
+The malware uses a cookie number=[guid]. The GUID can be generated in multiple ways:
+-Hardcoded:1156fd22-3443-4344-c4ffff or 1156FD2243443443FFFFFFC400000000 (generated on 00402FCF on the initial malware) if the malware fails to resolve CoCreateGuid or use it.
+-Generated using CoCreateGuid
+
+
+##################################Created files##############################################
+The malware creates four .TMP files on the host temporary folder using the name [TEMP PATH]~D<uuuu>.TMP where the uuuu is generated based on the host time (according to MSDN) since the argument for uUnique is zero. The files serve the following purpose:
+
+-Contain the Config file. This file is rapidly deleted once parsed.
+-Contain the malware/script downloaded and executed. Initially, the malware creates a temporary file on the temp folder. However, it only uses the path for the file, i.e., the downloaded malware/script is created on the temp folder but with the name provided on the configuration sent by the server. In this case, two temporary files are created. 
+-Capture any output from the execution. The data is then sent to the remote server. 
+
+
+The aforementioned files are generated by the final decoded backdoor running within one of the browsers.
+
+There is also a reference to the file: %TEMP%\~tmp133.tmp from the initial binary (00403061). There is no reference to this file anywhere else. It is my understanding that when contacting the remote server for the first time, this file will be downloaded as a result of a command. This file may indicate the initial malware that the injection was successful and that there is connectivity.
+
+
+####################################Persistence Mechanisms####################################
+
+SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon->explorer.exe C:\Users\user\Desktop\3AB3D4~1
+
+
+####################################Exfiltrated information####################################
+The malware fingerprints the host and extracts the following info:
+-System manufacturer
+-System Product Name
+-CPU info: cores, manufacturer, specs
+-memory usage: total, used percentage
+-Operating System version, name, build,bits
+-Computer name, current user, groups to which it belongs.
+-Special folders: current, system, User temp
+-Language, country
+-Uptime, current time and timezone
+-Logical drives: e.g. Hard Drives, CD, Floppy
+-Network resources: printers, disks,
+-Enumerates local users and privileges
+-tcp and udp connections/sockets
+-Installed updates and patches
+-processes pid, ppid,  owner,  proc_name
+-enumerates windows and the processes that own them
+-Lists files on C:\,User Temp, Desktop,
+
+
+
+############Anti-Analysis####################################################################
+-Looks for the processes:
+tcpdump.exe
+windump.exe
+ethereal.exe
+wireshark.exe
+ettercap.exe
+snoop.exe
+dsniff.exe
+does nothing while they are active.
+
+####################################Events/Mutexes####################################:
+
+Windows.HardwareAcceleration to check whether it is already infected.
+
+########################C2 configurations, malware commands and encodings################
+The remote server respondes with a file containing configurations for the malware. The configuration obeys the standard for initialization files that can be queried by GetPrivateProfileString. The file seems to have the following structure (default is the value passed to GetPrivateProfileString):
+
+<div>
+
+[CONFIG]
+[4 bytes]??
+[4 bytes]
+[Data With The Number of bytes defined by the previous four bytes]: this is likely malware or a script but definetely the file to be executed later. I just see a simple writefile of this data on the malware so this is likely a script and not a binary.
+
+name(default "0") (path of the downloaded malware or file to be executed. This should be the path where the aforementioned bytes are meant to be written. See del_task.)
+
+exe(default "0")= contains a command or chain of commands to be executed. These commands may reference the "name" which is the path of the file to be created and executed.
+
+down(default "0")= Contains URL. While the malware parses the URL, i do not see it being used anywhere.
+
+del_task(default yes)= If yes, the executed binary/script file referenced by name is removed. This can also be used to remove files generically.
+
+del_result(default no)= rules whether the file containing the output should be deleted.
+
+delete(default no)= rules whether the malware should keep running or return
+
+As context for the result, when the exe command is executed, the output is redirected to a temporary file using stream manipulation.  When result is set, it contains a path. It is my understanding that result is a way for the server to say: the output is not on the temporary file you created. It is on another file, use that file instead. 
+
+result(default 0)= The result is connected with del_result. del_result is only processed if result is not zero. If not zero, the temporary file created by the malware to contain the output of the executed command will be deleted. Otherwise it is kept.
+
+This could also be a good mechanism to exfiltrate files.
+
+
+Configurations for the malware are served between <div></div> and are decoded using the routine i called remote_config_decoder. 
+
+As for the exfiltrated information, which can be host information or the result of a command received on a config file, the data seems to be encoded using three functions:
+-encoder
+-remote_config_encoder. The data encoded here has some bytes prepended which seem to be related to the size of the originally encoded data
+-Base64 
+
+
+
+
+
