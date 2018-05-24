@@ -283,7 +283,7 @@ Features:
 - Reverse shell
 - File listing. The output for this is presented in HTML.
 - Uses SQLite database (My_DB) to store configurations and other stuff. The stored data has a checksum that is computed by the malware. Some of the tables are: chnnl
-- RC4 encryption and simple xor encoding used for stuff like received data or data stored on the database.
+- RC4 encryption and simple xor encoding used for stuff like received data or data stored on the database. According to OSINT and my analysis it seems that RC4 is used to stored stuff on the database. As for communication with the remote server, there is no encryption, just Base64. XOR seems to be used for both configurations and HTTP requests/responses.
 - Checks processes for desktop environments: gnome, kde, mate, cinnamon, lxde, xfce, jwm.
 - Checks OS type based on the following strings on /etc files: fedora, debian, gentoo, mandriva, mandrake, meego, redhat, lsb, sun, SUSE, release.
 
@@ -303,7 +303,33 @@ Endpoint:
 - Persistence stuff: /usr/lib/systemd/system/rsyncd.service
 
 ########################################################################################################
-Questions to answer:
--SQLite database structure (e.g. tables)
--HTTP responses and binary protocol (e.g. checksums, structure of requests)
--Understand where RC4 and B64 are used
+SQLite structure:
+-Database name: My_DB
+-Tabelas:
+ -chnnl(id,binary) where id is an int and binary is  blob. The blob contains RC4 encrypted binary data. According to OSINT (https://vms[.]drweb[.]com/virus/?i=4276269&lng=en) it contains configurations with the following structure:
+ 	struct st_cncconfig
+	{
+	  _WORD id;
+	  _BYTE byte2;
+	  _BYTE byte3;
+	  _QWORD pCnCBeg;
+	  _QWORD pCnCEnd;
+	  _QWORD pLastElement;
+	};
+ Bytes are added to the plain bytes before encryption to check integrity later.b 
+ -prms(id, dword) where id is an int and dword as well. This table is searched for the id 0x310031 and 0x310032. These values are described as:
+
+ "The dwell time value with "id == 0x310031" for the standby mode is stored in the prms table. The value stands for the interval, during which the Trojan does not receive a reply with the payload from the command and control server. The value with "id == 0x320032" stands for the dwell time value for active mode.
+ (...)
+ When the backdoor establishes a connection to the command and control server, it sets the request period time equal to the specified dwell time for the standby mode. Once the Trojan receives the payload, it changes the request period to the dwell time value for the active mode. If the dwell time value for the active mode has been set, but the package has not been received, the dwell time value is incremented by the dwell time value for the active period. This action is repeated until the dwell time value is bigger or equal to the dwell time value for the standby mode."
+
+ I did not check this part in detail.
+
+
+ They occupy 32 bits.
+
+
+########################################################################################################
+Questions to answer and topics for future investigation:
+- HTTP responses and binary protocol (e.g. checksums, structure of responses, received bytes and associated commands)
+- Understand in more detail where B64, RC4 and XOR are used.
