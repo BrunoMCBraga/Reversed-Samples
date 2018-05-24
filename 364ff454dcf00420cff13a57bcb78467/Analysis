@@ -317,16 +317,13 @@ SQLite structure:
 	  _QWORD pLastElement;
 	};
  Bytes are added to the plain bytes before encryption to check integrity later.b 
- -prms(id, dword) where id is an int and dword as well. This table is searched for the id 0x310031 and 0x310032. These values are described as:
+ -prms(id, dword) where id is an int and dword as well (they occupy 32 bits). This table is searched for the id 0x310031 and 0x310032. These values are described as:
 
  "The dwell time value with "id == 0x310031" for the standby mode is stored in the prms table. The value stands for the interval, during which the Trojan does not receive a reply with the payload from the command and control server. The value with "id == 0x320032" stands for the dwell time value for active mode.
  (...)
  When the backdoor establishes a connection to the command and control server, it sets the request period time equal to the specified dwell time for the standby mode. Once the Trojan receives the payload, it changes the request period to the dwell time value for the active mode. If the dwell time value for the active mode has been set, but the package has not been received, the dwell time value is incremented by the dwell time value for the active period. This action is repeated until the dwell time value is bigger or equal to the dwell time value for the standby mode."
 
  I did not check this part in detail.
-
-
- They occupy 32 bits.
 
 
 ########################################################################################################
