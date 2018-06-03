@@ -1,2 +1,2 @@
 # Reversed-Samples
-Repo for samples i have reversed
+Repo for some of the samples i have reversed.
