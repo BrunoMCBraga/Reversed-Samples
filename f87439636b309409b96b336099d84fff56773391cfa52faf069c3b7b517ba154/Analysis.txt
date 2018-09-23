@@ -1,0 +1,132 @@
+IDA DBs:
+- Panda_After_Restructuring_On_decoded_416101 5.idb (where the final code is). Some important functions: 
+main: this is the function called after the unpacking
+svchost_main: this is the code executed within the injected svchost processes
+- PotentialPnda 2.idb (DB for original sample)
+- decoded-416101-extended 2.idb (DB for partially unpacked sample)
+- Panda_After_Restructuring_On_decoded_416101-Offset0406ED1(StartingOnMZWithTheSizeOfImageAndAfterAdjustmentsFrom0406EE6) 2.idb (libinject)
+
+
+The short report follows. Note, i will skip mutex and event syncronization. The GData report as well as some URLs i have provided describe well what this one does. The GData report does not refer the existence of a keylogger module or screenshot capture which is found on this malware. Both of these features have been observed before.
+
+After the malware is unpacked, it executes the function main on the DB. The svchost_main is the code injected into svchost.
+
+Regardless of whether it is executing for the first time or not, the function at 00408A8D (fills_in_structures_and_respawns_if_low_integrity) is always called. The executed parts differ. 
+
+If called for the first time (ecx=0)
+- Performs some reckon on the host: computer name, installdate, digitalproductid, etc. This information is saved in encodded manner and has some checksums embedded.  This information is saved on a global address and later used on functions that generate random strings. This is likely used for entropy. 
+
+
+If called in the contect of injectin (ecx=1)
+- Resolves import table for host process (i.e. loads dlls and resolves function addresses)
+
+Both cases:
+Malware checks integrity level and respawns if below medium with createprocess runas. The low priviliged version exits.
+
+Then the malware upon first execution proceeds to execute 409540. It starts by looking for the extended attribute "bear" on the binary.
+
+
+If not found:
+- Malware tries to get handle for named mutex. If it is able to do so, it creates a pipe and communicates. One of the instances of svchost spawned creates a named pipe. This seems to be a way to communicate with the shellcode. The communication relies on codes. For instance: 1F6, asks the shellcode to send the extended bear attributes which are then written to a copy of the malware which is then spawned.
+
+In the absence of such pipe, the malware performs anti-analysis. This makes sense since, it the code has been injected and the pipe created, it means the host passed the battery of anti-analysis. I won't dive in this part unless required. The malware looks for a [RUNNING_MALWARE_NAME].dbg on the same folder as itself. The file contains a json with a data and sign strings. Basically, the data is hashed and compared with sign.  I don not see traces of .dbg anywhere else so it is my understanding this is generated when the malware interacts with the C2. The malware does not infect hosts with keyboards Russian, Ukranian, Belarusian and Kazakh.
+
+If anti-analysis checks pass, the malware searches for a path on CSIDL_APPDATA (AppData Romaing folder) and creates three files (one of them is a copy of the original binary). On GData report, the criterion for the choice is:
+∙ is empty
+∙ has a path that is at least 140 characters long,
+∙ does not contain either of microsoft or firefox, is as deep in the directory tree as possible
+
+Both code and execution indicate that being empty or not empty is irrelevant even though the malware checks if it is empty. The malware actually looks for microsoft, firefox.exe and chrome.exe. If these are found, the directory is not traversed and the AppDomain remains the chosen one. Also, the malware does not choose the deepest path which was simply proved with a dummy hierarchy created manually. 
+
+It also creates a key under HKEY_CURRENT_USER\SOFTWARE\Microsoft\. Analysis of the shellcode injected into the svchost indicates that configurations are stored on the registry. The code generating this key is on 40B748. In brief terms, the malware loops 100 times and tries to open keys under HKEY_CURRENT_USER\SOFTWARE\Microsoft\. The subkeys are chosen randomly within 0 and the number of subkeys. If it fails to open, it retries. From the moment it passes the 90 loops, any failure to open a key will trigger the creation of a random key: HKEY_CURRENT_USER\SOFTWARE\Microsoft\[RANDOM_VALUE]. This means that in a worst case scenarion, the malware may create 10 random subkeys. In any case, the chosen key may be random or not depending on whether the malware was able to get a handle or create a key.
+
+
+The malware then copies itself to the new path and writes the following to the bear extended attributes:
+- 5CE (size)
+- 2060A00h
+- encoded bytes resulting from reckon function which i referred previously: InstallDate, Osversion, computername, etc
+- clsid for volume containing system32
+- 20 bytes of random data
+- Random dword
+- File 4 path (malware copy)
+- File 1 path
+- File 2 path
+- FIle 3 path
+- Registry key
+- More random bytes
+
+
+The new copy is then executed and self-destructs. Judging by some code injected into svchost, it seems that the registry key is supposed to contain a config. If not found, the malware falls back to one of the other files.
+
+
+If found:
+- The extended attributes are saved in memory encrypted and then decrypted on the fly when needed by functions such as 409065. The malware checks whether the GUID for the HDD is the same as the one saved in the extended attributes. It also checks whether it is running from CSIDL_APPDATA. If one of these checks fail it exits. The malware then injects itself into two instances of svchost. Each instance will contain pretty part of the malware loaded in memory. Also, the malware sets one global field on each instance with the values 100h and 200h which are then checked by each instance of shellcode. Each value means different functionality.
+
+As i was over the previous findings i have realised that the malware config is actually decodable (or so it seems) by forcing execution of the decoder which explains why i managed to get the domains. This decoding is done by the function on 0406EFC.
+
+
+
+################################################################################################################################################
+ 
+As previously referred the entrypoint for the shellcode is the same on both svchosts (409861). Both svchosts start by executing 0408A8D with ecx=1. Check the description above to understand what happens. Then the execution proceeds to 004092EB. Here there are two branches chosen based on a global dword in memory (100 or 200). These values can be observed being pushed before the injection function is called:
+
+
+If 100 (for each line there is a thread associated):
+- Creates named pipe and listens for requests. Some features are: sending bear extended attributes to client, self-destruction (i.e. remove malware keys, files, etc), takes screenshot
+- Lowers browsers security (for chrome, ie and firefox): disable ssl cert warnings on ie, disables spdy and http2 on chrome and firefox. Then, it searches for browser processes: MicrosoftEdgeCP.exe, MicrosoftEdge.exe, iexplore.exe, opera.exe, chrome.exe, firefox.exe and if they are not running inside Windows Jobs and their SIDs for TerminalServices is the same as the user under which the malware is running, the malware decodes a dll and calls some exports with the handle for the process and the value indexed by the key webinjects32 on the dynamic configuration. A report is generated and written to a file.
+- Keeps malware infection: infects svchost if a certain mutex disappears from Windows, mantains Run keys and other associated files. The malware keeps some critical files in memory and rewrites them if they vanish
+- Downloads webinjects and writes it to one of the previously referred files.
+- Downloads vnc module and executes it. While the GData refers this module is loaded i have observed that it is actually executed. It fetches the latest URLs hosting the webinject32/64, grabber, vnc32, backsocks and keylogger. It also decrypts and loads the grabber calling then some functions exported by it. It seems the encoded grabber is part of its dynamic configuration and it is stored as a value on a Json file indexed by the key grabber. The call to the export functions results in a file being created and processed (likely containing the results) to generate a report.
+- Sends reports and executes and remote ScriptCommands received. Looking at the accepted commands (table 415CC4), i spot: download and execution of vnc player,  update configuration, lists/reads/sets to normal type files with given pattern (starts on A:, B:, C:,...), execute shell commands locally, update list_blocked, blocked_injects, multiple calls to grabber exports based on a dword parameter (e.g. 40F80E ecx=40), multiple event sets (likely related to syncronization).
+
+
+
+
+If 200 (for each line there is a thread associated):
+- Monitors critical files and registry keys. This thread is also launched by the other svchost.
+- Loads VNC module and calls some exports. The URL for VNC backserver is decoded and passed as an argument to one of those exports. While it seems that above, the VNC module is executable and not loadable, in here it is loadable. Also, it seems to be part of the downloaded configuration.
+- Loads Backsocks plugin and calls some exports. As above, one of the exports calls receives a url for backsocks' backserver.
+- Loads Keylogger module and calls an export some parameters such as: something within bear extended attributes (likely the path for the stored keys) and values indexed by "keylog_process" and "screen_process" from the configuration stored in the registry.
+For both cases above, i have seen the modules being extracted from some json configuration in the registry.
+
+################################################################################################################################################
+The malware has an embedded dll (libinject). Extracted:
+
+The binary is reported on:
+https://www.vkremez.com/2018/01/lets-learn-dissect-panda-banking.html?view=magazine
+
+But that article does not explain some details. One of them is the fact that the binary uses trampoline code for covert execution. Simply put:
+
+    - Malware creates shared memory map to save webinject module
+    - Spawns remote thread on browser to run RtlExitUserThread in suspended mode
+    - Injects trampoline code on shared segment that jumps to webinject. Changes EAX and EIP for remote thread so that instead of executing RtlExitUserThread, it executes the trampoline code.
+    - Resumes remote thread
+
+Approach similar to UrSnif:
+https://arielkoren.com/blog/2016/11/01/ursnif-malware-deep-technical-dive/
+
+
+################################################################################################################################################
+Interesting features:
+- Malware relies a lot on mutexes and event for synchronization and some checks (e.g. infection)
+- Gets the SID Token for the malware process and uses it later when choosing processes to infect with the modules (i.e. browsers) to make sure there are no violations of rights. 
+- There are lots of integrity checks throughout the malware. They are typically used when a C2 interaction takes place.
+- It is common to see a combination of 40E358 with 040DB38. Basically, the malware extracts some configuration from the registry, updates it and stores it again. We can see this on routines such as 040DAD3 where the keylogger is deployed.  The configuration is extracted, is updated with a temp path and then stored again in a encrypted form using key material from the bear extended attribute. 
+- As referred on GData report there are multiple configurations: internal configuration (containing bootstrap domains) that comes with the sample, generated configuration embedded on malware copy using extended attributes (contains registry keys and files where configurations and results are stored) and dynamic configuration (downloaded configuration). The internal configuration when decrypted one of the routines reveals simple domains such as 47[.]com and such. These domains have been reported on:
+- https://www.vkremez.com/2018/08/lets-learn-dissecting-panda-banker.html?view=sidebar
+- https://asert.arbornetworks.com/panda-bankers-future-dga/
+
+As you can see on the comments for the first article it seems the malware has two sets of domains on the base configuration. The short domains are used when DGA is employed the others are static. The obtention of the updated configuration encompasses the following sequential attempts (check 0040CDAA):
+- url_config from dynamic configuration stored on registry (not present at the beginning)
+- Decodes https://mihecksandca[.]ru/1ixcyidwexoumibewibbi.dat, gets the domain part and generates a path. 
+- Queries dynamic configuration from the registry to obtain the value indexed by "reserved" on the json. This is referred on GData's report and it contains an encrypted set of fallback domains. Each one of them is contacted to obtain the configuration. If the above steps failed, this will fail.
+- The malware falls back to DGA mode where the following domains are used:
+ https://[HEX_STRING_WITH_LENGTH_10_BASED_ON_SYSTEMTIME]47.com/conf.dat
+ https://[HEX_STRING_WITH_LENGTH_10_BASED_ON_SYSTEMTIME]98.com/conf.dat
+ https://[HEX_STRING_WITH_LENGTH_10_BASED_ON_SYSTEMTIME]10.net/conf.dat
+ https://[HEX_STRING_WITH_LENGTH_10_BASED_ON_SYSTEMTIME]98.net/conf.dat
+
+If nothing is obtained from that domain after 5 attempts, it decodes https://hogamotin[.]com/2anorfoeco/rfieqfimuke.dat, takes the domain, generates a path and tries to contact the domain to get a configuration and the above repeats.
+
+Due to what seems to be a goof, the malware is not relying on DGAs. Looking at the line 040CFE1 on the unpacked database it seems the malware is not waiting until the time elapses since the object is likely on signaled state. 
+
